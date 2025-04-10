@@ -1,18 +1,52 @@
-name: Flutter Build
+name: Flutter Build APK
 
-on: [push]
+on: 
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: subosito/flutter-action@v1
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
-      - run: flutter pub get
-      - run: flutter build apk
-      - uses: actions/upload-artifact@v2
+          flutter-version: '3.19.5'
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-pub-cache'
+          cache-path: '$HOME/.pub-cache'
+
+      - name: Setup JDK
+        uses: actions/setup-java@v3
         with:
-          name: app-apk
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Dependencies
+        run: |
+          flutter pub get
+          flutter pub run flutter_launcher_icons:main
+
+      - name: Run Flutter Analyzer
+        run: flutter analyze
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+      - name: Show Build Info
+        run: |
+          echo "Build completed successfully!"
+          ls -la build/app/outputs/flutter-apk/
